@@ -1,10 +1,31 @@
 #include <iostream>
 #include <Eigen/Dense>
+#include <chrono>
+#include "StructedMesh.h"
+
+typedef float fp;
+
+int dim = 2;
+
+int ncx = 64;
+int ncy = 64;
+int ncz = 1;
+
+fp xmin = 0.0;
+fp xmax = 0.833;
+fp ymin = 0.0;
+fp ymax = 0.83;
+fp zmin = 0.0;
+fp zmax = 1.0;
 
 int main() {
-    Eigen::MatrixXd m(2, 2);
-    m << 1, 2,
-         3, 4;
-    std::cout << m << std::endl;
+    auto start = std::chrono::high_resolution_clock::now();
+
+    StructedMesh case_(dim, ncx, ncy, ncz);
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "Elapsed time: " << duration_ms.count() << " ms\n";
     return 0;
 }
