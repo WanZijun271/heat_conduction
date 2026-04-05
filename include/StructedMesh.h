@@ -6,14 +6,25 @@
 class StructedMesh {
 private:
     int _dim;
-    int _ncx, _ncy, _ncz;                               // Number of cell in each direction
-    int _nx, _ny, _nz;                                  // Number of nodes in each direction
-    MP::fp _xmin, _xmax, _ymin, _ymax, _zmin, _zmax;   // Domain coordinates
-    MP::Mat _x, _y, _z;                                // Mesh coordinates
+    int _ncx, _ncy, _ncz;                                       // number of cell in each direction
+    int _nx, _ny, _nz;                                          // number of nodes in each direction
+    MP::fp _xmin, _xmax, _ymin, _ymax, _zmin, _zmax;            // domain coordinates
+    std::vector<MP::fp> _x, _y, _z;                             // mesh coordinates
+    std::vector<MP::fp> _xc, _yc, _zc;                          // cell-centered mesh coordinates
+    MP::fp _dx, _dy, _dz;
+
+    std::vector<MP::fp> _t;                                     // temperature fied
+    std::vector<MP::fp> _t0;                                    // old temperature fied
+
+    int _ncoef;
+    std::vector<MP::fp> _ct;
 
 public:
     StructedMesh(int dim, int ncx, int ncy, int ncz=1);
     void createCoordinates(MP::fp xmin, MP::fp xmax, MP::fp ymin, MP::fp ymax, MP::fp zmin=0.0, MP::fp zmax=1.0);
+    void createFieldMeshData();
+    void setInitialT(MP::fp t);
+    void createCoefMeshData();
 };
 
 #endif

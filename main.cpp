@@ -23,6 +23,9 @@ int main() {
     auto start = std::chrono::high_resolution_clock::now();
 
     StructedMesh case_(dim, ncx, ncy, ncz);
+    case_.createCoordinates(xmin, xmax, ymin, ymax, zmin, zmax);
+    case_.createFieldMeshData();
+    case_.createCoefMeshData();
 
     auto end = std::chrono::high_resolution_clock::now();
 
