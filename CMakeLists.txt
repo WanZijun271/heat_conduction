@@ -25,3 +25,5 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 add_executable(app ${SRC_FILES})
 
 target_link_libraries(app Eigen3::Eigen)
+
+target_precompile_headers(app PRIVATE "${CMAKE_SOURCE_DIR}/include/pch.h")

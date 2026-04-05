@@ -1,9 +1,10 @@
+#include "pch.h"
 #include <iostream>
-#include <Eigen/Dense>
 #include <chrono>
+#include "types.h"
 #include "StructedMesh.h"
 
-typedef float fp;
+using namespace MP;
 
 int dim = 2;
 
