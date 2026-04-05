@@ -4,7 +4,7 @@ project(MyProject)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_compile_options(-fdiagnostics-color=always -Wall)
+add_compile_options(-fdiagnostics-color=always -Wall -H)
 
 set(CMAKE_BUILD_TYPE Debug)
 

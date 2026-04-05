@@ -1,7 +1,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <Eigen/Dense>
+#include "pch.h"
 
 namespace MP {
     using fp = double;

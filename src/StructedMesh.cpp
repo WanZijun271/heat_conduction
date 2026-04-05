@@ -1,5 +1,5 @@
-#include "pch.h"
 #include "StructedMesh.h"
+#include <fstream>
 
 using namespace std;
 using namespace MP;
@@ -13,22 +13,13 @@ using namespace MP;
 #define aT 6
 #define aB 7
 
-StructedMesh::StructedMesh(int dim, int ncx, int ncy, int ncz) : _dim(dim), _ncx(ncx), _ncy(ncy), _ncz(ncz) {
-    if (_dim == 2) {
-        _ncz = 1;
-    }
+StructedMesh::StructedMesh(int dim, int nc[], fp domain[]) : _dim(dim),
+_ncx(nc[0]), _ncy(nc[1]), _ncz(nc[2]),
+_nx(nc[0]+1), _ny(nc[1]+1), _nz(nc[2]+1),
+_xmin(domain[0]), _xmax(domain[1]), _ymin(domain[2]), _ymax(domain[3]), _zmin(domain[4]), _zmax(domain[5]),
+_dx((_xmax - _xmin) / (fp)_ncx), _dy((_ymax - _ymin) / (fp)_ncy) , _dz((_zmax - _zmin) / (fp)_ncz) {
 
-    _nx = _ncx + 1, _ny = _ncy + 1, _nz = _ncz + 1;
-}
-
-void StructedMesh::createCoordinates(fp xmin, fp xmax, fp ymin, fp ymax, fp zmin, fp zmax) {
-    _xmin = xmin, _xmax = xmax, _ymin = ymin, _ymax = ymax, _zmin = zmin, _zmax = zmax;
-
-    if (_dim == 2) {
-        _zmin = 0.0;
-        _zmax = 1.0;
-    }
-
+    // create coordinates
     _x.assign(_nx, 0);
     _y.assign(_ny, 0);
     _z.assign(_nz, 0);
@@ -38,15 +29,12 @@ void StructedMesh::createCoordinates(fp xmin, fp xmax, fp ymin, fp ymax, fp zmin
     _zc.assign(_ncz, 0);
 
     // Mesh generation
-    _dx = (_xmax - _xmin) / (fp)_ncx;
     for (int i = 0; i < _nx; ++i) {
         _x[i] = _xmin + (fp)i * _dx;
     }
-    _dy = (_ymax - _ymin) / (fp)_ncy;
     for (int i = 0; i < _ny; ++i) {
         _y[i] = _ymin + (fp)i * _dy;
     }
-    _dz = (_zmax - _zmin) / (fp)_ncz;
     for (int i = 0; i < _nz; ++i) {
         _z[i] = _zmin + (fp)i * _dz;
     }
@@ -60,9 +48,8 @@ void StructedMesh::createCoordinates(fp xmin, fp xmax, fp ymin, fp ymax, fp zmin
     for (int i = 0; i < _ncz; ++i) {
         _zc[i] = 0.5 * (_z[i] + _z[i+1]);
     }
-}
 
-void StructedMesh::createFieldMeshData() {
+    // initial field data
     _t.assign(_ncx * _ncy * _ncz, 0);
     _t0.assign(_ncx * _ncy * _ncz, 0);
 }
@@ -79,4 +66,47 @@ void StructedMesh::createCoefMeshData() {
     }
 
     _ct.assign(_ncx * _ncy * _ncz * _ncoef, 0);
+}
+
+void StructedMesh::writeVTKCollocatedTemp(string filename) const {
+    ofstream file(filename);
+
+    // write header
+	file << "# vtk DataFile Version 3.0" << endl;
+    file << "flash 3d grid and solution" << endl;
+    file << "ASCII" << endl;
+    file << "DATASET RECTILINEAR_GRID" << endl;
+
+    // write mesh information
+    file << "DIMENSIONS " << _nx << " " << _ny << " " << _nz << endl;
+    file << "X_COORDINATES " << _nx << " float" << endl;
+    for (fp x : _x) {
+        file << x << " ";
+    }
+    file << endl;
+    file << "Y_COORDINATES " << _ny << " float" << endl;
+    for (fp y : _y) {
+        file << y << " ";
+    }
+    file << endl;
+    file << "Z_COORDINATES " << _nz << " float" << endl;
+    for (fp z : _z) {
+        file << z << " ";
+    }
+    file << endl;
+
+    // write cell data
+    int ncell = _ncx * _ncy * _ncz;
+    file << "CELL_DATA " << ncell << endl;
+
+    file << "FIELD FieldData 1" << endl;
+
+    // write temperature data
+    file << "t 1 " << ncell << " float" << endl;
+    for (fp t : _t) {
+        file << t << " ";
+    }
+    file << endl;
+
+    file.close();
 }
