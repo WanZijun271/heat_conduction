@@ -13,11 +13,12 @@ using namespace MP;
 #define aT 6
 #define aB 7
 
-StructedMesh::StructedMesh(int dim, int nc[], fp domain[]) : _dim(dim),
-_ncx(nc[0]), _ncy(nc[1]), _ncz(nc[2]),
-_nx(nc[0]+1), _ny(nc[1]+1), _nz(nc[2]+1),
-_xmin(domain[0]), _xmax(domain[1]), _ymin(domain[2]), _ymax(domain[3]), _zmin(domain[4]), _zmax(domain[5]),
-_dx((_xmax - _xmin) / (fp)_ncx), _dy((_ymax - _ymin) / (fp)_ncy) , _dz((_zmax - _zmin) / (fp)_ncz) {
+StructedMesh::StructedMesh(int dim, int nc[], fp domain[])
+    : _dim(dim)
+    , _ncx(nc[0]), _ncy(nc[1]), _ncz(nc[2])
+    , _nx(nc[0]+1), _ny(nc[1]+1), _nz(nc[2]+1)
+    , _xmin(domain[0]), _xmax(domain[1]), _ymin(domain[2]), _ymax(domain[3]), _zmin(domain[4]), _zmax(domain[5])
+    , _dx((_xmax - _xmin) / (fp)_ncx), _dy((_ymax - _ymin) / (fp)_ncy) , _dz((_zmax - _zmin) / (fp)_ncz) {
 
     // create coordinates
     _x.assign(_nx, 0);
@@ -66,6 +67,10 @@ void StructedMesh::createCoefMeshData() {
     }
 
     _ct.assign(_ncx * _ncy * _ncz * _ncoef, 0);
+}
+
+void StructedMesh::createSimulationData() {
+    
 }
 
 void StructedMesh::writeVTKCollocatedTemp(string filename) const {

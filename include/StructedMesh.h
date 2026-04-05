@@ -25,6 +25,7 @@ public:
     StructedMesh(int dim, int nc[], MP::fp domain[]);
     void setInitialT(MP::fp t);
     void createCoefMeshData();
+    void createSimulationData();
     void writeVTKCollocatedTemp(std::string filename) const;
 };
 
