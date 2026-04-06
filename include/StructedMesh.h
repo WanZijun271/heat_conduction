@@ -9,21 +9,21 @@ private:
     const int _dim;
     const int _ncx, _ncy, _ncz;                                 // number of cell in each direction
     const int _nx, _ny, _nz;                                    // number of nodes in each direction
-    const MP::fp _xmin, _xmax, _ymin, _ymax, _zmin, _zmax;      // domain coordinates
-    const MP::fp _dx, _dy, _dz;
+    const cfd::scalar _xmin, _xmax, _ymin, _ymax, _zmin, _zmax;      // domain coordinates
+    const cfd::scalar _dx, _dy, _dz;
 
-    std::vector<MP::fp> _x, _y, _z;                             // mesh coordinates
-    std::vector<MP::fp> _xc, _yc, _zc;                          // cell-centered mesh coordinates
+    std::vector<cfd::scalar> _x, _y, _z;                             // mesh coordinates
+    std::vector<cfd::scalar> _xc, _yc, _zc;                          // cell-centered mesh coordinates
 
-    std::vector<MP::fp> _t;                                     // temperature fied
-    std::vector<MP::fp> _t0;                                    // old temperature fied
+    std::vector<cfd::scalar> _t;                                     // temperature fied
+    std::vector<cfd::scalar> _t0;                                    // old temperature fied
 
     int _ncoef;
-    std::vector<MP::fp> _ct;
+    std::vector<cfd::scalar> _ct;
 
 public:
-    StructedMesh(int dim, int nc[], MP::fp domain[]);
-    void setInitialT(MP::fp t);
+    StructedMesh(int dim, int nc[], cfd::scalar domain[]);
+    void setInitialT(cfd::scalar t);
     void createCoefMeshData();
     void createSimulationData();
     void writeVTKCollocatedTemp(std::string filename) const;

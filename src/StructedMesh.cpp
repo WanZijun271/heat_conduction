@@ -2,7 +2,7 @@
 #include <fstream>
 
 using namespace std;
-using namespace MP;
+using namespace cfd;
 
 #define b 0
 #define aP 1
@@ -13,12 +13,12 @@ using namespace MP;
 #define aT 6
 #define aB 7
 
-StructedMesh::StructedMesh(int dim, int nc[], fp domain[])
+StructedMesh::StructedMesh(int dim, int nc[], scalar domain[])
     : _dim(dim)
     , _ncx(nc[0]), _ncy(nc[1]), _ncz(nc[2])
     , _nx(nc[0]+1), _ny(nc[1]+1), _nz(nc[2]+1)
     , _xmin(domain[0]), _xmax(domain[1]), _ymin(domain[2]), _ymax(domain[3]), _zmin(domain[4]), _zmax(domain[5])
-    , _dx((_xmax - _xmin) / (fp)_ncx), _dy((_ymax - _ymin) / (fp)_ncy) , _dz((_zmax - _zmin) / (fp)_ncz) {
+    , _dx((_xmax - _xmin) / (scalar)_ncx), _dy((_ymax - _ymin) / (scalar)_ncy) , _dz((_zmax - _zmin) / (scalar)_ncz) {
 
     // create coordinates
     _x.assign(_nx, 0);
@@ -31,13 +31,13 @@ StructedMesh::StructedMesh(int dim, int nc[], fp domain[])
 
     // Mesh generation
     for (int i = 0; i < _nx; ++i) {
-        _x[i] = _xmin + (fp)i * _dx;
+        _x[i] = _xmin + (scalar)i * _dx;
     }
     for (int i = 0; i < _ny; ++i) {
-        _y[i] = _ymin + (fp)i * _dy;
+        _y[i] = _ymin + (scalar)i * _dy;
     }
     for (int i = 0; i < _nz; ++i) {
-        _z[i] = _zmin + (fp)i * _dz;
+        _z[i] = _zmin + (scalar)i * _dz;
     }
 
     for (int i = 0; i < _ncx; ++i) {
@@ -55,7 +55,7 @@ StructedMesh::StructedMesh(int dim, int nc[], fp domain[])
     _t0.assign(_ncx * _ncy * _ncz, 0);
 }
 
-void StructedMesh::setInitialT(fp t) {
+void StructedMesh::setInitialT(scalar t) {
     _t.assign(_ncx * _ncy * _ncz, t);
 }
 
@@ -85,17 +85,17 @@ void StructedMesh::writeVTKCollocatedTemp(string filename) const {
     // write mesh information
     file << "DIMENSIONS " << _nx << " " << _ny << " " << _nz << endl;
     file << "X_COORDINATES " << _nx << " float" << endl;
-    for (fp x : _x) {
+    for (scalar x : _x) {
         file << x << " ";
     }
     file << endl;
     file << "Y_COORDINATES " << _ny << " float" << endl;
-    for (fp y : _y) {
+    for (scalar y : _y) {
         file << y << " ";
     }
     file << endl;
     file << "Z_COORDINATES " << _nz << " float" << endl;
-    for (fp z : _z) {
+    for (scalar z : _z) {
         file << z << " ";
     }
     file << endl;
@@ -108,7 +108,7 @@ void StructedMesh::writeVTKCollocatedTemp(string filename) const {
 
     // write temperature data
     file << "t 1 " << ncell << " float" << endl;
-    for (fp t : _t) {
+    for (scalar t : _t) {
         file << t << " ";
     }
     file << endl;

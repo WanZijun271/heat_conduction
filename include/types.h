@@ -3,10 +3,10 @@
 
 #include "pch.h"
 
-namespace MP {
-    using fp = double;
+namespace cfd {
+    using scalar = double;
 
-    using Mat = Eigen::Matrix<fp, Eigen::Dynamic, Eigen::Dynamic>;
+    using Mat = Eigen::Matrix<scalar, Eigen::Dynamic, Eigen::Dynamic>;
 }
 
 #endif
