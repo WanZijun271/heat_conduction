@@ -13,12 +13,12 @@ private:
 
 public:
     Solver();
-    void initTempField(scalar t);                 // initialize temperature field
-    void JacobiSolver();                          // solve the equation using the Jacobi interative method
-    void GaussSeidelSolver();                     // solve the equation using the Gauss-Seidel interative method
+    void initTempField(scalar t);                        // initialize temperature field
+    void JacobiSolver();                                 // solve the equation using the Jacobi interative method
+    void GaussSeidelSolver();                            // solve the equation using the Gauss-Seidel interative method
     void writeVTK(const std::string& filename) const;    // write the result to .vtk file
 private:
-    void calcCoef();                              // calculate the coefficients of the equation 
+    void calcCoef();                                     // calculate the coefficients of the equation 
 };
 
 #endif
