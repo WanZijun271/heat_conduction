@@ -1,37 +1,14 @@
 #include "Solver.h"
 #include "config.h"
+#include "constants.h"
 #include "kernels.cuh"
 #include <cmath>
 #include <fstream>
-#include <iostream>
-#include <chrono>
 
 using namespace std;
 
-namespace {
-    constexpr int east   = 0;
-    constexpr int west   = 1;
-    constexpr int north  = 2;
-    constexpr int south  = 3;
-    constexpr int top    = 4;
-    constexpr int bottom = 5;
-
-    constexpr int id_b  = 0;
-    constexpr int id_aP = 1;
-    constexpr int id_aE = 2;
-    constexpr int id_aW = 3;
-    constexpr int id_aN = 4;
-    constexpr int id_aS = 5;
-    constexpr int id_aT = 6;
-    constexpr int id_aB = 7;
-
-    constexpr scalar dx = (xmax - xmin) / (scalar)nx;
-    constexpr scalar dy = (ymax - ymin) / (scalar)ny;
-    constexpr scalar dz = (zmax - zmin) / (scalar)nz;
-}
-
 Solver::Solver() {
-    _t.assign(nx * ny * nz, 0);     // initialize temperature field
+    _temp.assign(nx * ny * nz, 0);     // initialize temperature field
 
     // initialize coefficient
     if (dim == 2) {
@@ -42,52 +19,16 @@ Solver::Solver() {
     calcCoef();    // calculate coefficient
 }
 
-void Solver::initTempField(scalar t) {
-    _t.assign(nx * ny * nz, t);
+void Solver::initTempField(scalar temp) {
+    _temp.assign(nx * ny * nz, temp);
 }
 
 void Solver::JacobiSolver() {
-
-    vector<scalar> t0(_t.size(), 0);
-
-    scalar maxNorm = -1e20;
-
-    for (int it = 0; it < niter; ++it) {
-        t0.swap(_t);
-
-        scalar norm = 0.0;
-
-        JacobiIterate(_t, t0, _coef, norm);
-        
-        norm = sqrt(norm / (nx * ny * nz));
-
-        maxNorm = max(norm, maxNorm);
-
-        scalar relNorm = norm / (maxNorm + 1e-20);    // relative residual
-        if (relNorm < tol) {
-            break;
-        }
-    }
+    JacobiIterate(_temp, _coef);
 }
 
 void Solver::GaussSeidelSolver() {
-
-    scalar maxNorm = -1e20;
-
-    for (int it = 0; it < niter; ++it) {
-        scalar norm = 0.0;
-
-        GaussSeidelIterate(_t, _coef, norm);
-
-        norm = sqrt(norm / (nx * ny * nz));
-
-        maxNorm = max(norm, maxNorm);
-
-        scalar relNorm = norm / (maxNorm + 1e-20);    // relative residual
-        if (relNorm < tol) {
-            break;
-        }
-    }
+    GaussSeidelIterate(_temp, _coef);
 }
 
 void Solver::writeVTK(const string& filename) const {
@@ -125,7 +66,7 @@ void Solver::writeVTK(const string& filename) const {
 
     // write temperature data
     file << "t 1 " << ncell << " float" << endl;
-    for (const scalar& t : _t) {
+    for (const scalar& t : _temp) {
         file << t << " ";
     }
     file << endl;

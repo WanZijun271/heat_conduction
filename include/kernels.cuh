@@ -4,8 +4,8 @@
 #include "types.h"
 #include <vector>
 
-void JacobiIterate(std::vector<scalar>& t, const std::vector<scalar>& t0, const std::vector<scalar>& coef, scalar& norm);
+void JacobiIterate(std::vector<scalar>& temp, const std::vector<scalar>& coef);
 
-void GaussSeidelIterate(std::vector<scalar>& t, const std::vector<scalar>& coef, scalar& norm);
+void GaussSeidelIterate(std::vector<scalar>& temp, const std::vector<scalar>& coef);
 
 #endif

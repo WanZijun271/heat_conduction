@@ -1,19 +1,8 @@
 #include "kernels.cuh"
 #include "config.h"
-#include <cstdio>
+#include "constants.h"
 
 using namespace std;
-
-namespace {
-    constexpr int id_b  = 0;
-    constexpr int id_aP = 1;
-    constexpr int id_aE = 2;
-    constexpr int id_aW = 3;
-    constexpr int id_aN = 4;
-    constexpr int id_aS = 5;
-    constexpr int id_aT = 6;
-    constexpr int id_aB = 7;
-}
 
 __global__ void JacobiIterateKernel(scalar *temp, scalar* temp0, scalar *coef, scalar *norm) {
 
@@ -106,20 +95,20 @@ __global__ void JacobiIterateKernel(scalar *temp, scalar* temp0, scalar *coef, s
     }
 }
 
-void JacobiIterate(vector<scalar>& t, const vector<scalar>& t0, const vector<scalar>& coef, scalar& norm) {
-    size_t tSize = t.size() * sizeof(scalar);
+void JacobiIterate(vector<scalar>& temp, const vector<scalar>& coef) {
+
+    size_t tempSize = temp.size() * sizeof(scalar);
     size_t coefSize = coef.size() * sizeof(scalar);
 
     scalar *devTemp, *devTemp0, *devCoef, *devNorm;
-    cudaMalloc(&devTemp, tSize);
-    cudaMalloc(&devTemp0, tSize);
+    cudaMalloc(&devTemp, tempSize);
+    cudaMalloc(&devTemp0, tempSize);
     cudaMalloc(&devCoef, coefSize);
     cudaMalloc(&devNorm, sizeof(scalar));
 
-    cudaMemcpy(devTemp, t.data(), tSize, cudaMemcpyHostToDevice);
-    cudaMemcpy(devTemp0, t0.data(), tSize, cudaMemcpyHostToDevice);
+    cudaMemcpy(devTemp, temp.data(), tempSize, cudaMemcpyHostToDevice);
+    cudaMemset(devTemp0, 0, tempSize);
     cudaMemcpy(devCoef, coef.data(), coefSize, cudaMemcpyHostToDevice);
-    cudaMemcpy(devNorm, &norm, sizeof(scalar), cudaMemcpyHostToDevice);
 
     dim3 threadsPerBlock;
     dim3 numBlocks;
@@ -142,10 +131,33 @@ void JacobiIterate(vector<scalar>& t, const vector<scalar>& t0, const vector<sca
     }
 
     int blockSize = threadsPerBlock.x * threadsPerBlock.y * threadsPerBlock.z;
-    JacobiIterateKernel<<<numBlocks, threadsPerBlock, sizeof(scalar) * blockSize>>>(devTemp, devTemp0, devCoef, devNorm);
 
-    cudaMemcpy(t.data(), devTemp, tSize, cudaMemcpyDeviceToHost);
-    cudaMemcpy(&norm, devNorm, sizeof(scalar), cudaMemcpyDeviceToHost);
+    scalar maxNorm = -1e20;
+
+    for (int it = 0; it < niter; ++it) {
+        
+        scalar *tmp = devTemp;
+        devTemp = devTemp0;
+        devTemp0 = tmp;
+
+        scalar norm = 0.0;
+        cudaMemcpy(devNorm, &norm, sizeof(scalar), cudaMemcpyHostToDevice);
+
+        JacobiIterateKernel<<<numBlocks, threadsPerBlock, sizeof(scalar) * blockSize>>>(devTemp, devTemp0, devCoef, devNorm);
+        
+        cudaMemcpy(&norm, devNorm, sizeof(scalar), cudaMemcpyDeviceToHost);
+
+        norm = sqrt(norm / (nx * ny * nz));
+
+        maxNorm = max(norm, maxNorm);
+
+        scalar relNorm = norm / (maxNorm + 1e-20);    // relative residual
+        if (relNorm < tol) {
+            break;
+        }
+    }
+
+    cudaMemcpy(temp.data(), devTemp, tempSize, cudaMemcpyDeviceToHost);
 
     cudaFree(devTemp);
     cudaFree(devTemp0);
@@ -244,18 +256,18 @@ __global__ void GaussSeidelIterateKernel(scalar *temp, scalar *coef, scalar *nor
     }
 }
 
-void GaussSeidelIterate(vector<scalar>& t, const vector<scalar>& coef, scalar& norm) {
-    size_t tSize = t.size() * sizeof(scalar);
+void GaussSeidelIterate(vector<scalar>& temp, const vector<scalar>& coef) {
+
+    size_t tempSize = temp.size() * sizeof(scalar);
     size_t coefSize = coef.size() * sizeof(scalar);
 
     scalar *devTemp, *devCoef, *devNorm;
-    cudaMalloc(&devTemp, tSize);
+    cudaMalloc(&devTemp, tempSize);
     cudaMalloc(&devCoef, coefSize);
     cudaMalloc(&devNorm, sizeof(scalar));
 
-    cudaMemcpy(devTemp, t.data(), tSize, cudaMemcpyHostToDevice);
+    cudaMemcpy(devTemp, temp.data(), tempSize, cudaMemcpyHostToDevice);
     cudaMemcpy(devCoef, coef.data(), coefSize, cudaMemcpyHostToDevice);
-    cudaMemcpy(devNorm, &norm, sizeof(scalar), cudaMemcpyHostToDevice);
 
     dim3 threadsPerBlock;
     dim3 numBlocks;
@@ -278,10 +290,29 @@ void GaussSeidelIterate(vector<scalar>& t, const vector<scalar>& coef, scalar& n
     }
 
     int blockSize = threadsPerBlock.x * threadsPerBlock.y * threadsPerBlock.z;
-    GaussSeidelIterateKernel<<<numBlocks, threadsPerBlock, sizeof(scalar) * blockSize>>>(devTemp, devCoef, devNorm);
 
-    cudaMemcpy(t.data(), devTemp, tSize, cudaMemcpyDeviceToHost);
-    cudaMemcpy(&norm, devNorm, sizeof(scalar), cudaMemcpyDeviceToHost);
+    scalar maxNorm = -1e20;
+
+    for (int it = 0; it < niter; ++it) {
+
+        scalar norm = 0.0;
+        cudaMemcpy(devNorm, &norm, sizeof(scalar), cudaMemcpyHostToDevice);
+
+        GaussSeidelIterateKernel<<<numBlocks, threadsPerBlock, sizeof(scalar) * blockSize>>>(devTemp, devCoef, devNorm);
+        
+        cudaMemcpy(&norm, devNorm, sizeof(scalar), cudaMemcpyDeviceToHost);
+
+        norm = sqrt(norm / (nx * ny * nz));
+
+        maxNorm = max(norm, maxNorm);
+
+        scalar relNorm = norm / (maxNorm + 1e-20);    // relative residual
+        if (relNorm < tol) {
+            break;
+        }
+    }
+
+    cudaMemcpy(temp.data(), devTemp, tempSize, cudaMemcpyDeviceToHost);
 
     cudaFree(devTemp);
     cudaFree(devCoef);
