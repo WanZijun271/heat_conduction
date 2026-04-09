@@ -7,7 +7,8 @@ int main() {
 
     Solver solver;
     solver.initTempField(373.0);
-    solver.JacobiSolver();
+    // solver.JacobiSolver();
+    solver.GaussSeidelSolver();
     solver.writeVTK("output/temp.vtk");
 
     auto end = std::chrono::high_resolution_clock::now();

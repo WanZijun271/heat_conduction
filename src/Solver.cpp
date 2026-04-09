@@ -1,7 +1,10 @@
 #include "Solver.h"
 #include "config.h"
+#include "kernels.cuh"
 #include <cmath>
 #include <fstream>
+#include <iostream>
+#include <chrono>
 
 using namespace std;
 
@@ -21,11 +24,11 @@ namespace {
     constexpr int id_aS = 5;
     constexpr int id_aT = 6;
     constexpr int id_aB = 7;
-}
 
-constexpr scalar dx = (xmax - xmin) / (scalar)nx;
-constexpr scalar dy = (ymax - ymin) / (scalar)ny;
-constexpr scalar dz = (zmax - zmin) / (scalar)nz;
+    constexpr scalar dx = (xmax - xmin) / (scalar)nx;
+    constexpr scalar dy = (ymax - ymin) / (scalar)ny;
+    constexpr scalar dz = (zmax - zmin) / (scalar)nz;
+}
 
 Solver::Solver() {
     _t.assign(nx * ny * nz, 0);     // initialize temperature field
@@ -44,83 +47,22 @@ void Solver::initTempField(scalar t) {
 }
 
 void Solver::JacobiSolver() {
+
     vector<scalar> t0(_t.size(), 0);
+
     scalar maxNorm = -1e20;
+
     for (int it = 0; it < niter; ++it) {
         t0.swap(_t);
-        scalar norm;
-        for (int k = 0; k < nz; ++k) {
-            for (int j = 0; j < ny; ++j) {
-                for (int i = 0; i < nx; ++i) {
-                    // tP
-                    int idP = i + j * nx + k * nx * ny;
-                    scalar tP = t0[idP];
-                    // tE
-                    scalar tE = 0.0;
-                    if ( i != nx - 1 ) {
-                        int idE = (i+1) + j * nx + k * nx * ny;
-                        tE = t0[idE];
-                    }
-                    // tW
-                    scalar tW = 0.0;
-                    if ( i != 0 ) {
-                        int idW = (i-1) + j * nx + k * nx * ny;
-                        tW = t0[idW];
-                    }
-                    // tN
-                    scalar tN = 0.0;
-                    if ( j != ny - 1 ) {
-                        int idN = i + (j+1) * nx + k * nx * ny;
-                        tN = t0[idN];
-                    }
-                    // tN
-                    scalar tS = 0.0;
-                    if ( j != 0 ) {
-                        int idS = i + (j-1) * nx + k * nx * ny;
-                        tS = t0[idS];
-                    }
-                    // tT
-                    scalar tT = 0.0;
-                    if ( k != nz - 1 ) {
-                        int idT = i + j * nx + (k+1) * nx * ny;
-                        tT = t0[idT];
-                    }
-                    // tB
-                    scalar tB = 0.0;
-                    if ( k != 0 ) {
-                        int idB = i + j * nx + (k-1) * nx * ny;
-                        tB = t0[idB];
-                    }
-                    
-                    scalar tNew = tP;
-                    if (dim == 2) {
-                        int id = i * 6 + j * nx * 6;
-                        tNew = _coef[id+id_b]
-                            - _coef[id+id_aE] * tE
-                            - _coef[id+id_aW] * tW
-                            - _coef[id+id_aN] * tN
-                            - _coef[id+id_aS] * tS;
-                        tNew /= _coef[id+id_aP];
-                    } else if (dim == 3) {
-                        int id = i * 8 + j * nx * 8 + k * nx * ny * 8;
-                        tNew = _coef[id+id_b]
-                            - _coef[id+id_aE] * tE
-                            - _coef[id+id_aW] * tW
-                            - _coef[id+id_aN] * tN
-                            - _coef[id+id_aS] * tS
-                            - _coef[id+id_aT] * tT
-                            - _coef[id+id_aB] * tB;
-                        tNew /= _coef[id+id_aP];
-                    }
 
-                    scalar dT = relax * (tNew - tP);
-                    _t[idP] = tP + dT;
-                    norm += dT*dT;
-                }
-            }
-        }
+        scalar norm = 0.0;
+
+        JacobiIterate(_t, t0, _coef, norm);
+        
         norm = sqrt(norm / (nx * ny * nz));
+
         maxNorm = max(norm, maxNorm);
+
         scalar relNorm = norm / (maxNorm + 1e-20);    // relative residual
         if (relNorm < tol) {
             break;
@@ -129,81 +71,18 @@ void Solver::JacobiSolver() {
 }
 
 void Solver::GaussSeidelSolver() {
-    scalar maxNorm = -1e20;
-    for (int it = 0; it < niter; ++it) {
-        scalar norm;
-        for (int k = 0; k < nz; ++k) {
-            for (int j = 0; j < ny; ++j) {
-                for (int i = 0; i < nx; ++i) {
-                    // tP
-                    int idP = i + j * nx + k * nx * ny;
-                    scalar tP = _t[idP];
-                    // tE
-                    scalar tE = 0.0;
-                    if ( i != nx - 1 ) {
-                        int idE = (i+1) + j * nx + k * nx * ny;
-                        tE = _t[idE];
-                    }
-                    // tW
-                    scalar tW = 0.0;
-                    if ( i != 0 ) {
-                        int idW = (i-1) + j * nx + k * nx * ny;
-                        tW = _t[idW];
-                    }
-                    // tN
-                    scalar tN = 0.0;
-                    if ( j != ny - 1 ) {
-                        int idN = i + (j+1) * nx + k * nx * ny;
-                        tN = _t[idN];
-                    }
-                    // tN
-                    scalar tS = 0.0;
-                    if ( j != 0 ) {
-                        int idS = i + (j-1) * nx + k * nx * ny;
-                        tS = _t[idS];
-                    }
-                    // tT
-                    scalar tT = 0.0;
-                    if ( k != nz - 1 ) {
-                        int idT = i + j * nx + (k+1) * nx * ny;
-                        tT = _t[idT];
-                    }
-                    // tB
-                    scalar tB = 0.0;
-                    if ( k != 0 ) {
-                        int idB = i + j * nx + (k-1) * nx * ny;
-                        tB = _t[idB];
-                    }
-                    
-                    scalar tNew = tP;
-                    if (dim == 2) {
-                        int id = i * 6 + j * nx * 6;
-                        tNew = _coef[id+id_b]
-                            - _coef[id+id_aE] * tE
-                            - _coef[id+id_aW] * tW
-                            - _coef[id+id_aN] * tN
-                            - _coef[id+id_aS] * tS;
-                        tNew /= _coef[id+id_aP];
-                    } else if (dim == 3) {
-                        int id = i * 8 + j * nx * 8 + k * nx * ny * 8;
-                        tNew = _coef[id+id_b]
-                            - _coef[id+id_aE] * tE
-                            - _coef[id+id_aW] * tW
-                            - _coef[id+id_aN] * tN
-                            - _coef[id+id_aS] * tS
-                            - _coef[id+id_aT] * tT
-                            - _coef[id+id_aB] * tB;
-                        tNew /= _coef[id+id_aP];
-                    }
 
-                    scalar dT = relax * (tNew - tP);
-                    _t[idP] = tP + dT;
-                    norm += dT*dT;
-                }
-            }
-        }
+    scalar maxNorm = -1e20;
+
+    for (int it = 0; it < niter; ++it) {
+        scalar norm = 0.0;
+
+        GaussSeidelIterate(_t, _coef, norm);
+
         norm = sqrt(norm / (nx * ny * nz));
+
         maxNorm = max(norm, maxNorm);
+
         scalar relNorm = norm / (maxNorm + 1e-20);    // relative residual
         if (relNorm < tol) {
             break;
