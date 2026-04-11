@@ -23,8 +23,8 @@ void Solver::initTempField(scalar temp) {
     _temp.assign(nx * ny * nz, temp);
 }
 
-void Solver::JacobiSolver() {
-    JacobiIterate(_temp, _coef);
+void Solver::pointJacobiSolver() {
+    pointJacobiIterate(_temp, _coef);
 }
 
 void Solver::GaussSeidelSolver() {
@@ -65,9 +65,9 @@ void Solver::writeVTK(const string& filename) const {
     file << "FIELD FieldData 1" << endl;
 
     // write temperature data
-    file << "t 1 " << ncell << " float" << endl;
-    for (const scalar& t : _temp) {
-        file << t << " ";
+    file << "temperature 1 " << ncell << " float" << endl;
+    for (const scalar& temp : _temp) {
+        file << temp << " ";
     }
     file << endl;
 
@@ -75,76 +75,108 @@ void Solver::writeVTK(const string& filename) const {
 }
 
 void Solver::calcCoef() {
-    scalar aE = - kappa * (dy * dz) / dx;
-    scalar aW = - kappa * (dy * dz) / dx;
-    scalar aN = - kappa * (dz * dx) / dy;
-    scalar aS = - kappa * (dz * dx) / dy;
-    scalar aT = - kappa * (dx * dy) / dz;
-    scalar aB = - kappa * (dx * dy) / dz;
+
+    scalar areaE = dy * dz;
+    scalar areaW = dy * dz;
+    scalar areaN = dz * dx;
+    scalar areaS = dz * dx;
+    scalar areaT = dx * dy;
+    scalar areaB = dx * dy;
+
+    scalar aE = -thermalConductivity * areaE / dx;
+    scalar aW = -thermalConductivity * areaW / dx;
+    scalar aN = -thermalConductivity * areaN / dy;
+    scalar aS = -thermalConductivity * areaS / dy;
+    scalar aT = -thermalConductivity * areaT / dz;
+    scalar aB = -thermalConductivity * areaB / dz;
+
     for (int k = 0; k < nz; ++k) {
         for (int j = 0; j < ny; ++j) {
             for (int i = 0; i < nx; ++i) {
+
                 int id;
                 if (dim == 2) {
                     id = i * 6 + j * nx * 6;
                 } else if (dim == 3) {
                     id = i * 8 + j * nx * 8 + k * nx * ny * 8;
                 }
-                // aE
-                if (i == nx - 1) {
-                    _coef[id+id_aP] += -2 * aE;
-                    _coef[id+id_b] += -2 * aE * tBC[east];
-                }
-                else {
-                    _coef[id+id_aE] += aE;
-                    _coef[id+id_aP] += -aE;
-                }
-                // aW
-                if (i == 0) {
-                    _coef[id+id_aP] += -2 * aW;
-                    _coef[id+id_b] += -2 * aW * tBC[west];
-                }
-                else {
-                    _coef[id+id_aW] += aW;
-                    _coef[id+id_aP] += -aW;
-                }
-                // aN
-                if (j == ny - 1) {
-                    _coef[id+id_aP] += -2 * aN;
-                    _coef[id+id_b] += -2 * aN * tBC[north];
-                }
-                else {
-                    _coef[id+id_aN] += aN;
-                    _coef[id+id_aP] += -aN;
-                }
-                // aS
-                if (j == 0) {
-                    _coef[id+id_aP] += -2 * aS;
-                    _coef[id+id_b] += -2 * aS * tBC[south];
-                }
-                else {
-                    _coef[id+id_aS] += aS;
-                    _coef[id+id_aP] += -aS;
+
+                _coef[id+id_aE] += aE;
+                _coef[id+id_aW] += aW;
+                _coef[id+id_aN] += aN;
+                _coef[id+id_aS] += aS;
+                _coef[id+id_aP] += -(aE + aW + aN + aS);
+                if (dim == 3) {
+                    _coef[id+id_aT] += aT;
+                    _coef[id+id_aB] += aB;
+                    _coef[id+id_aP] += -(aT + aB);
                 }
 
-                if (dim == 3) {
-                    // aT
-                    if (k == nz - 1) {
-                        _coef[id+id_aP] += -2 * aT;
-                        _coef[id+id_b] += -2 * aT * tBC[top];
+                // set boundary conditios
+                if (i == nx - 1) { // east
+                    if (typeBC[east] == 0) { // "Dirichlet" type
+                        _coef[id+id_aP] += -aE;
+                        _coef[id+id_b] += -2 * aE * valueOfTempBCs[east];
+                        _coef[id+id_aE] = 0.0;
+                    } else if (typeBC[east] == 1) { // "Neumann" type
+                        _coef[id+id_aP] += aE;
+                        _coef[id+id_b] += -valueOfTempBCs[east] * areaE;
+                        _coef[id+id_aE] = 0.0;
                     }
-                    else {
-                        _coef[id+id_aT] += aT;
+                }
+                if (i == 0) { // west
+                    if (typeBC[west] == 0) { // "Dirichlet" type
+                        _coef[id+id_aP] += -aW;
+                        _coef[id+id_b] += -2 * aW * valueOfTempBCs[west];
+                        _coef[id+id_aW] = 0.0;
+                    } else if (typeBC[west] == 1) { // "Neumann" type
+                        _coef[id+id_aP] += aW;
+                        _coef[id+id_b] += -valueOfTempBCs[west] * areaW;
+                        _coef[id+id_aW] = 0.0;
+                    }
+                }
+                if (j == ny - 1) { // north
+                    if (typeBC[north] == 0) { // "Dirichlet" type
+                        _coef[id+id_aP] += -aN;
+                        _coef[id+id_b] += -2 * aN * valueOfTempBCs[north];
+                        _coef[id+id_aN] = 0.0;
+                    } else if (typeBC[north] == 1) { // "Neumann" type
+                        _coef[id+id_aP] += aN;
+                        _coef[id+id_b] += -valueOfTempBCs[north] * areaN;
+                        _coef[id+id_aN] = 0.0;
+                    }
+                }
+                if (j == 0) { // south
+                    if (typeBC[south] == 0) { // "Dirichlet" type
+                        _coef[id+id_aP] += -aS;
+                        _coef[id+id_b] += -2 * aS * valueOfTempBCs[south];
+                        _coef[id+id_aS] = 0.0;
+                    } else if (typeBC[south] == 1) { // "Neumann" type
+                        _coef[id+id_aP] += aS;
+                        _coef[id+id_b] += -valueOfTempBCs[south] * areaS;
+                        _coef[id+id_aS] = 0.0;
+                    }
+                }
+                if (dim == 3 && k == nz - 1) { // top
+                    if (typeBC[top] == 0) { // "Dirichlet" type
                         _coef[id+id_aP] += -aT;
+                        _coef[id+id_b] += -2 * aT * valueOfTempBCs[top];
+                        _coef[id+id_aT] = 0.0;
+                    } else if (typeBC[top] == 1) { // "Neumann" type
+                        _coef[id+id_aP] += aT;
+                        _coef[id+id_b] += -valueOfTempBCs[top] * areaT;
+                        _coef[id+id_aT] = 0.0;
                     }
-                    // aB
-                    if (k == 0) {
-                        _coef[id+id_aP] += -2 * aB;
-                        _coef[id+id_b] += -2 * aB * tBC[bottom];
-                    }
-                    else {
-                        _coef[id+id_aB] += aB;
+                }
+                if (dim == 3 && k == 0) { // bottom
+                    if (typeBC[bottom] == 0) { // "Dirichlet" type
                         _coef[id+id_aP] += -aB;
+                        _coef[id+id_b] += -2 * aB * valueOfTempBCs[bottom];
+                        _coef[id+id_aB] = 0.0;
+                    } else if (typeBC[bottom] == 1) { // "Neumann" type
+                        _coef[id+id_aP] += aB;
+                        _coef[id+id_b] += -valueOfTempBCs[bottom] * areaB;
+                        _coef[id+id_aB] = 0.0;
                     }
                 }
             }

@@ -5,33 +5,43 @@
 
 constexpr int dim = 2;
 
-constexpr int nx = 256;
-constexpr int ny = 256;
+constexpr int nx = 512;
+constexpr int ny = 512;
 constexpr int nz = 1;
 
 constexpr scalar xmin = 0.0;
-constexpr scalar xmax = 0.8333;
+constexpr scalar xmax = 1.0;
 constexpr scalar ymin = 0.0;
-constexpr scalar ymax = 0.833;
+constexpr scalar ymax = 1.0;
 constexpr scalar zmin = 0.0;
 constexpr scalar zmax = 1.0;
 
-constexpr scalar k = 81.0;                // thermal conductivity 热导率
-constexpr scalar cp = 1.0;                // specific heat capacity 比热容
-constexpr scalar rho = 1.0;               // density 密度
-constexpr scalar kappa = k / cp / rho;    // thermal diffusivity 热扩散率
+constexpr scalar thermalConductivity = 81.0;                                                   // thermal conductivity 热导率
+constexpr scalar specificHeatCapacity = 1.0;                                                   // specific heat capacity 比热容
+constexpr scalar density = 1.0;                                                                // density 密度
+constexpr scalar thermalDiffusivity = thermalConductivity / specificHeatCapacity / density;    // thermal diffusivity 热扩散率
 
 // boundary condition
-constexpr scalar tBC[6] = {
-    373.0,    // east
-    373.0,    // west
+constexpr int typeBC[6] = {
+    1,    // east
+    1,    // west
+    0,    // north
+    0,    // south
+    1,    // top
+    1     // bottom
+};
+// 0 for the "Dirichlet" type; 1 for the "Neumann" type
+
+constexpr scalar valueOfTempBCs[6] = {
+    0.0,      // east
+    0.0,      // west
     293.0,    // north
     373.0,    // south
     0.0,      // top
     0.0       // bottom
 };
 
-constexpr int niter = 100000;      // iteration times 迭代次数
+constexpr int niter = 10000000;      // iteration times 迭代次数
 constexpr scalar relax = 0.75;     // 松弛因子
 constexpr scalar tol = 1e-6;       // tolerance of relative residual
 

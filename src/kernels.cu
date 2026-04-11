@@ -1,10 +1,12 @@
 #include "kernels.cuh"
 #include "config.h"
 #include "constants.h"
+#include <cmath>
+#include <algorithm>
 
 using namespace std;
 
-__global__ void JacobiIterateKernel(scalar *temp, scalar* temp0, scalar *coef, scalar *norm) {
+__global__ void pointJacobiIterateKernel(scalar *temp, scalar* temp0, scalar *coef, scalar *norm) {
 
     extern __shared__ scalar sharedNorm[];
 
@@ -15,68 +17,68 @@ __global__ void JacobiIterateKernel(scalar *temp, scalar* temp0, scalar *coef, s
 
     if (i < nx && j < ny && k < nz) {
         int idP = i + j * nx + k * nx * ny;
-        scalar tP = temp0[idP];
+        scalar tempP = temp0[idP];
         // tE
-        scalar tE = 0.0;
+        scalar tempE = 0.0;
         if ( i != nx - 1 ) {
             int idE = (i+1) + j * nx + k * nx * ny;
-            tE = temp0[idE];
+            tempE = temp0[idE];
         }
         // tW
-        scalar tW = 0.0;
+        scalar tempW = 0.0;
         if ( i != 0 ) {
             int idW = (i-1) + j * nx + k * nx * ny;
-            tW = temp0[idW];
+            tempW = temp0[idW];
         }
         // tN
-        scalar tN = 0.0;
+        scalar tempN = 0.0;
         if ( j != ny - 1 ) {
             int idN = i + (j+1) * nx + k * nx * ny;
-            tN = temp0[idN];
+            tempN = temp0[idN];
         }
-        // tN
-        scalar tS = 0.0;
+        // tS
+        scalar tempS = 0.0;
         if ( j != 0 ) {
             int idS = i + (j-1) * nx + k * nx * ny;
-            tS = temp0[idS];
+            tempS = temp0[idS];
         }
         // tT
-        scalar tT = 0.0;
+        scalar tempT = 0.0;
         if ( k != nz - 1 ) {
             int idT = i + j * nx + (k+1) * nx * ny;
-            tT = temp0[idT];
+            tempT = temp0[idT];
         }
         // tB
-        scalar tB = 0.0;
+        scalar tempB = 0.0;
         if ( k != 0 ) {
             int idB = i + j * nx + (k-1) * nx * ny;
-            tB = temp0[idB];
+            tempB = temp0[idB];
         }
         
-        scalar tNew = tP;
+        scalar newTemp = tempP;
         if (dim == 2) {
             int id = i * 6 + j * nx * 6;
-            tNew = coef[id+id_b]
-                - coef[id+id_aE] * tE
-                - coef[id+id_aW] * tW
-                - coef[id+id_aN] * tN
-                - coef[id+id_aS] * tS;
-            tNew /= coef[id+id_aP];
+            newTemp = coef[id+id_b]
+                - coef[id+id_aE] * tempE
+                - coef[id+id_aW] * tempW
+                - coef[id+id_aN] * tempN
+                - coef[id+id_aS] * tempS;
+            newTemp /= coef[id+id_aP];
         } else if (dim == 3) {
             int id = i * 8 + j * nx * 8 + k * nx * ny * 8;
-            tNew = coef[id+id_b]
-                - coef[id+id_aE] * tE
-                - coef[id+id_aW] * tW
-                - coef[id+id_aN] * tN
-                - coef[id+id_aS] * tS
-                - coef[id+id_aT] * tT
-                - coef[id+id_aB] * tB;
-            tNew /= coef[id+id_aP];
+            newTemp = coef[id+id_b]
+                - coef[id+id_aE] * tempE
+                - coef[id+id_aW] * tempW
+                - coef[id+id_aN] * tempN
+                - coef[id+id_aS] * tempS
+                - coef[id+id_aT] * tempT
+                - coef[id+id_aB] * tempB;
+            newTemp /= coef[id+id_aP];
         }
 
-        scalar dT = relax * (tNew - tP);
+        scalar dT = relax * (newTemp - tempP);
 
-        temp[idP] = tP + dT;
+        temp[idP] = tempP + dT;
 
         sharedNorm[threadId] = dT*dT;
         __syncthreads();
@@ -95,7 +97,7 @@ __global__ void JacobiIterateKernel(scalar *temp, scalar* temp0, scalar *coef, s
     }
 }
 
-void JacobiIterate(vector<scalar>& temp, const vector<scalar>& coef) {
+void pointJacobiIterate(vector<scalar>& temp, const vector<scalar>& coef) {
 
     size_t tempSize = temp.size() * sizeof(scalar);
     size_t coefSize = coef.size() * sizeof(scalar);
@@ -143,7 +145,7 @@ void JacobiIterate(vector<scalar>& temp, const vector<scalar>& coef) {
         scalar norm = 0.0;
         cudaMemcpy(devNorm, &norm, sizeof(scalar), cudaMemcpyHostToDevice);
 
-        JacobiIterateKernel<<<numBlocks, threadsPerBlock, sizeof(scalar) * blockSize>>>(devTemp, devTemp0, devCoef, devNorm);
+        pointJacobiIterateKernel<<<numBlocks, threadsPerBlock, sizeof(scalar) * blockSize>>>(devTemp, devTemp0, devCoef, devNorm);
         
         cudaMemcpy(&norm, devNorm, sizeof(scalar), cudaMemcpyDeviceToHost);
 
@@ -176,68 +178,68 @@ __global__ void GaussSeidelIterateKernel(scalar *temp, scalar *coef, scalar *nor
 
     if (i < nx && j < ny && k < nz) {
         int idP = i + j * nx + k * nx * ny;
-        scalar tP = temp[idP];
+        scalar tempP = temp[idP];
         // tE
-        scalar tE = 0.0;
+        scalar tempE = 0.0;
         if ( i != nx - 1 ) {
             int idE = (i+1) + j * nx + k * nx * ny;
-            tE = temp[idE];
+            tempE = temp[idE];
         }
         // tW
-        scalar tW = 0.0;
+        scalar tempW = 0.0;
         if ( i != 0 ) {
             int idW = (i-1) + j * nx + k * nx * ny;
-            tW = temp[idW];
+            tempW = temp[idW];
         }
         // tN
-        scalar tN = 0.0;
+        scalar tempN = 0.0;
         if ( j != ny - 1 ) {
             int idN = i + (j+1) * nx + k * nx * ny;
-            tN = temp[idN];
+            tempN = temp[idN];
         }
-        // tN
-        scalar tS = 0.0;
+        // tS
+        scalar tempS = 0.0;
         if ( j != 0 ) {
             int idS = i + (j-1) * nx + k * nx * ny;
-            tS = temp[idS];
+            tempS = temp[idS];
         }
         // tT
-        scalar tT = 0.0;
+        scalar tempT = 0.0;
         if ( k != nz - 1 ) {
             int idT = i + j * nx + (k+1) * nx * ny;
-            tT = temp[idT];
+            tempT = temp[idT];
         }
         // tB
-        scalar tB = 0.0;
+        scalar tempB = 0.0;
         if ( k != 0 ) {
             int idB = i + j * nx + (k-1) * nx * ny;
-            tB = temp[idB];
+            tempB = temp[idB];
         }
         
-        scalar tNew = tP;
+        scalar newTemp = tempP;
         if (dim == 2) {
             int id = i * 6 + j * nx * 6;
-            tNew = coef[id+id_b]
-                - coef[id+id_aE] * tE
-                - coef[id+id_aW] * tW
-                - coef[id+id_aN] * tN
-                - coef[id+id_aS] * tS;
-            tNew /= coef[id+id_aP];
+            newTemp = coef[id+id_b]
+                - coef[id+id_aE] * tempE
+                - coef[id+id_aW] * tempW
+                - coef[id+id_aN] * tempN
+                - coef[id+id_aS] * tempS;
+            newTemp /= coef[id+id_aP];
         } else if (dim == 3) {
             int id = i * 8 + j * nx * 8 + k * nx * ny * 8;
-            tNew = coef[id+id_b]
-                - coef[id+id_aE] * tE
-                - coef[id+id_aW] * tW
-                - coef[id+id_aN] * tN
-                - coef[id+id_aS] * tS
-                - coef[id+id_aT] * tT
-                - coef[id+id_aB] * tB;
-            tNew /= coef[id+id_aP];
+            newTemp = coef[id+id_b]
+                - coef[id+id_aE] * tempE
+                - coef[id+id_aW] * tempW
+                - coef[id+id_aN] * tempN
+                - coef[id+id_aS] * tempS
+                - coef[id+id_aT] * tempT
+                - coef[id+id_aB] * tempB;
+            newTemp /= coef[id+id_aP];
         }
 
-        scalar dT = relax * (tNew - tP);
+        scalar dT = relax * (newTemp - tempP);
 
-        temp[idP] = tP + dT;
+        temp[idP] = tempP + dT;
 
         sharedNorm[threadId] = dT*dT;
         __syncthreads();

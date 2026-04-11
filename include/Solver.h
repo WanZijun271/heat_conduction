@@ -13,8 +13,8 @@ private:
 
 public:
     Solver();
-    void initTempField(scalar temp);                        // initialize temperature field
-    void JacobiSolver();                                 // solve the equation using the Jacobi interative method
+    void initTempField(scalar temp);                     // initialize temperature field
+    void pointJacobiSolver();                            // solve the equation using the Jacobi interative method
     void GaussSeidelSolver();                            // solve the equation using the Gauss-Seidel interative method
     void writeVTK(const std::string& filename) const;    // write the result to .vtk file
 private:

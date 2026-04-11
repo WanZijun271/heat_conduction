@@ -20,8 +20,8 @@ constexpr int id_aS = 5;
 constexpr int id_aT = 6;
 constexpr int id_aB = 7;
 
-constexpr scalar dx = (xmax - xmin) / (scalar)nx;
-constexpr scalar dy = (ymax - ymin) / (scalar)ny;
-constexpr scalar dz = (zmax - zmin) / (scalar)nz;
+const scalar dx = (xmax - xmin) / (scalar)nx;
+const scalar dy = (ymax - ymin) / (scalar)ny;
+const scalar dz = (zmax - zmin) / (scalar)nz;
 
 #endif
