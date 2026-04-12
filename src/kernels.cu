@@ -6,7 +6,7 @@
 
 using namespace std;
 
-__global__ void pointJacobiIterateKernel(scalar *temp, scalar* temp0, scalar *coef, scalar *norm) {
+__global__ void pointJacobiIterateKernel(scalar *tempField, scalar* tempField0, scalar *coef, scalar *norm) {
 
     extern __shared__ scalar sharedNorm[];
 
@@ -17,42 +17,42 @@ __global__ void pointJacobiIterateKernel(scalar *temp, scalar* temp0, scalar *co
 
     if (i < nx && j < ny && k < nz) {
         int idP = i + j * nx + k * nx * ny;
-        scalar tempP = temp0[idP];
+        scalar tempP = tempField0[idP];
         // tE
         scalar tempE = 0.0;
         if ( i != nx - 1 ) {
             int idE = (i+1) + j * nx + k * nx * ny;
-            tempE = temp0[idE];
+            tempE = tempField0[idE];
         }
         // tW
         scalar tempW = 0.0;
         if ( i != 0 ) {
             int idW = (i-1) + j * nx + k * nx * ny;
-            tempW = temp0[idW];
+            tempW = tempField0[idW];
         }
         // tN
         scalar tempN = 0.0;
         if ( j != ny - 1 ) {
             int idN = i + (j+1) * nx + k * nx * ny;
-            tempN = temp0[idN];
+            tempN = tempField0[idN];
         }
         // tS
         scalar tempS = 0.0;
         if ( j != 0 ) {
             int idS = i + (j-1) * nx + k * nx * ny;
-            tempS = temp0[idS];
+            tempS = tempField0[idS];
         }
         // tT
         scalar tempT = 0.0;
         if ( k != nz - 1 ) {
             int idT = i + j * nx + (k+1) * nx * ny;
-            tempT = temp0[idT];
+            tempT = tempField0[idT];
         }
         // tB
         scalar tempB = 0.0;
         if ( k != 0 ) {
             int idB = i + j * nx + (k-1) * nx * ny;
-            tempB = temp0[idB];
+            tempB = tempField0[idB];
         }
         
         scalar newTemp = tempP;
@@ -78,7 +78,7 @@ __global__ void pointJacobiIterateKernel(scalar *temp, scalar* temp0, scalar *co
 
         scalar dT = relax * (newTemp - tempP);
 
-        temp[idP] = tempP + dT;
+        tempField[idP] = tempP + dT;
 
         sharedNorm[threadId] = dT*dT;
         __syncthreads();
@@ -97,19 +97,19 @@ __global__ void pointJacobiIterateKernel(scalar *temp, scalar* temp0, scalar *co
     }
 }
 
-void pointJacobiIterate(vector<scalar>& temp, const vector<scalar>& coef) {
+void pointJacobiIterate(vector<scalar>& tempField, const vector<scalar>& coef) {
 
-    size_t tempSize = temp.size() * sizeof(scalar);
+    size_t tempFieldSize = tempField.size() * sizeof(scalar);
     size_t coefSize = coef.size() * sizeof(scalar);
 
-    scalar *devTemp, *devTemp0, *devCoef, *devNorm;
-    cudaMalloc(&devTemp, tempSize);
-    cudaMalloc(&devTemp0, tempSize);
+    scalar *devTempField, *devTempField0, *devCoef, *devNorm;
+    cudaMalloc(&devTempField, tempFieldSize);
+    cudaMalloc(&devTempField0, tempFieldSize);
     cudaMalloc(&devCoef, coefSize);
     cudaMalloc(&devNorm, sizeof(scalar));
 
-    cudaMemcpy(devTemp, temp.data(), tempSize, cudaMemcpyHostToDevice);
-    cudaMemset(devTemp0, 0, tempSize);
+    cudaMemcpy(devTempField, tempField.data(), tempFieldSize, cudaMemcpyHostToDevice);
+    cudaMemset(devTempField0, 0, tempFieldSize);
     cudaMemcpy(devCoef, coef.data(), coefSize, cudaMemcpyHostToDevice);
 
     dim3 threadsPerBlock;
@@ -138,14 +138,14 @@ void pointJacobiIterate(vector<scalar>& temp, const vector<scalar>& coef) {
 
     for (int it = 0; it < niter; ++it) {
         
-        scalar *tmp = devTemp;
-        devTemp = devTemp0;
-        devTemp0 = tmp;
+        scalar *tmp = devTempField;
+        devTempField = devTempField0;
+        devTempField0 = tmp;
 
         scalar norm = 0.0;
         cudaMemcpy(devNorm, &norm, sizeof(scalar), cudaMemcpyHostToDevice);
 
-        pointJacobiIterateKernel<<<numBlocks, threadsPerBlock, sizeof(scalar) * blockSize>>>(devTemp, devTemp0, devCoef, devNorm);
+        pointJacobiIterateKernel<<<numBlocks, threadsPerBlock, sizeof(scalar) * blockSize>>>(devTempField, devTempField0, devCoef, devNorm);
         
         cudaMemcpy(&norm, devNorm, sizeof(scalar), cudaMemcpyDeviceToHost);
 
@@ -159,15 +159,15 @@ void pointJacobiIterate(vector<scalar>& temp, const vector<scalar>& coef) {
         }
     }
 
-    cudaMemcpy(temp.data(), devTemp, tempSize, cudaMemcpyDeviceToHost);
+    cudaMemcpy(tempField.data(), devTempField, tempFieldSize, cudaMemcpyDeviceToHost);
 
-    cudaFree(devTemp);
-    cudaFree(devTemp0);
+    cudaFree(devTempField);
+    cudaFree(devTempField0);
     cudaFree(devCoef);
     cudaFree(devNorm);
 }
 
-__global__ void GaussSeidelIterateKernel(scalar *temp, scalar *coef, scalar *norm) {
+__global__ void GaussSeidelIterateKernel(scalar *tempField, scalar *coef, scalar *norm) {
 
     extern __shared__ scalar sharedNorm[];
 
@@ -178,42 +178,42 @@ __global__ void GaussSeidelIterateKernel(scalar *temp, scalar *coef, scalar *nor
 
     if (i < nx && j < ny && k < nz) {
         int idP = i + j * nx + k * nx * ny;
-        scalar tempP = temp[idP];
+        scalar tempP = tempField[idP];
         // tE
         scalar tempE = 0.0;
         if ( i != nx - 1 ) {
             int idE = (i+1) + j * nx + k * nx * ny;
-            tempE = temp[idE];
+            tempE = tempField[idE];
         }
         // tW
         scalar tempW = 0.0;
         if ( i != 0 ) {
             int idW = (i-1) + j * nx + k * nx * ny;
-            tempW = temp[idW];
+            tempW = tempField[idW];
         }
         // tN
         scalar tempN = 0.0;
         if ( j != ny - 1 ) {
             int idN = i + (j+1) * nx + k * nx * ny;
-            tempN = temp[idN];
+            tempN = tempField[idN];
         }
         // tS
         scalar tempS = 0.0;
         if ( j != 0 ) {
             int idS = i + (j-1) * nx + k * nx * ny;
-            tempS = temp[idS];
+            tempS = tempField[idS];
         }
         // tT
         scalar tempT = 0.0;
         if ( k != nz - 1 ) {
             int idT = i + j * nx + (k+1) * nx * ny;
-            tempT = temp[idT];
+            tempT = tempField[idT];
         }
         // tB
         scalar tempB = 0.0;
         if ( k != 0 ) {
             int idB = i + j * nx + (k-1) * nx * ny;
-            tempB = temp[idB];
+            tempB = tempField[idB];
         }
         
         scalar newTemp = tempP;
@@ -239,7 +239,7 @@ __global__ void GaussSeidelIterateKernel(scalar *temp, scalar *coef, scalar *nor
 
         scalar dT = relax * (newTemp - tempP);
 
-        temp[idP] = tempP + dT;
+        tempField[idP] = tempP + dT;
 
         sharedNorm[threadId] = dT*dT;
         __syncthreads();
@@ -258,17 +258,17 @@ __global__ void GaussSeidelIterateKernel(scalar *temp, scalar *coef, scalar *nor
     }
 }
 
-void GaussSeidelIterate(vector<scalar>& temp, const vector<scalar>& coef) {
+void GaussSeidelIterate(vector<scalar>& tempField, const vector<scalar>& coef) {
 
-    size_t tempSize = temp.size() * sizeof(scalar);
+    size_t tempFieldSize = tempField.size() * sizeof(scalar);
     size_t coefSize = coef.size() * sizeof(scalar);
 
-    scalar *devTemp, *devCoef, *devNorm;
-    cudaMalloc(&devTemp, tempSize);
+    scalar *devTempField, *devCoef, *devNorm;
+    cudaMalloc(&devTempField, tempFieldSize);
     cudaMalloc(&devCoef, coefSize);
     cudaMalloc(&devNorm, sizeof(scalar));
 
-    cudaMemcpy(devTemp, temp.data(), tempSize, cudaMemcpyHostToDevice);
+    cudaMemcpy(devTempField, tempField.data(), tempFieldSize, cudaMemcpyHostToDevice);
     cudaMemcpy(devCoef, coef.data(), coefSize, cudaMemcpyHostToDevice);
 
     dim3 threadsPerBlock;
@@ -300,7 +300,7 @@ void GaussSeidelIterate(vector<scalar>& temp, const vector<scalar>& coef) {
         scalar norm = 0.0;
         cudaMemcpy(devNorm, &norm, sizeof(scalar), cudaMemcpyHostToDevice);
 
-        GaussSeidelIterateKernel<<<numBlocks, threadsPerBlock, sizeof(scalar) * blockSize>>>(devTemp, devCoef, devNorm);
+        GaussSeidelIterateKernel<<<numBlocks, threadsPerBlock, sizeof(scalar) * blockSize>>>(devTempField, devCoef, devNorm);
         
         cudaMemcpy(&norm, devNorm, sizeof(scalar), cudaMemcpyDeviceToHost);
 
@@ -314,9 +314,9 @@ void GaussSeidelIterate(vector<scalar>& temp, const vector<scalar>& coef) {
         }
     }
 
-    cudaMemcpy(temp.data(), devTemp, tempSize, cudaMemcpyDeviceToHost);
+    cudaMemcpy(tempField.data(), devTempField, tempFieldSize, cudaMemcpyDeviceToHost);
 
-    cudaFree(devTemp);
+    cudaFree(devTempField);
     cudaFree(devCoef);
     cudaFree(devNorm);
 }

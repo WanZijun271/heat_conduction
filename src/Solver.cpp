@@ -8,27 +8,23 @@
 using namespace std;
 
 Solver::Solver() {
-    _temp.assign(nx * ny * nz, 0);     // initialize temperature field
+    _tempField.assign(nx * ny * nz, 0);     // initialize temperature field
 
     // initialize coefficient
-    if (dim == 2) {
-        _coef.assign(nx * ny * 6, 0);    // allocate memory
-    } else if (dim == 3) {
-        _coef.assign(nx * ny * nz * 8, 0);
-    }
+    _coef.assign(nx * ny * nz * (2 + 2 * dim), 0);
     calcCoef();    // calculate coefficient
 }
 
 void Solver::initTempField(scalar temp) {
-    _temp.assign(nx * ny * nz, temp);
+    _tempField.assign(nx * ny * nz, temp);
 }
 
 void Solver::pointJacobiSolver() {
-    pointJacobiIterate(_temp, _coef);
+    pointJacobiIterate(_tempField, _coef);
 }
 
 void Solver::GaussSeidelSolver() {
-    GaussSeidelIterate(_temp, _coef);
+    GaussSeidelIterate(_tempField, _coef);
 }
 
 void Solver::writeVTK(const string& filename) const {
@@ -66,7 +62,7 @@ void Solver::writeVTK(const string& filename) const {
 
     // write temperature data
     file << "temperature 1 " << ncell << " float" << endl;
-    for (const scalar& temp : _temp) {
+    for (const scalar& temp : _tempField) {
         file << temp << " ";
     }
     file << endl;

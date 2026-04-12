@@ -7,9 +7,9 @@
 
 class Solver {
 private:
-    std::vector<scalar> _temp;        // temperature field
+    std::vector<scalar> _tempField;        // temperature field
 
-    std::vector<scalar> _coef;     // coefficient
+    std::vector<scalar> _coef;             // coefficient
 
 public:
     Solver();
