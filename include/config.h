@@ -21,24 +21,24 @@ constexpr scalar specificHeatCapacity = 1.0;                                    
 constexpr scalar density = 1.0;                                                                // density 密度
 constexpr scalar thermalDiffusivity = thermalConductivity / specificHeatCapacity / density;    // thermal diffusivity 热扩散率
 
-// boundary condition
-constexpr int typeBC[6] = {
-    1,    // east
-    1,    // west
-    0,    // north
-    0,    // south
-    1,    // top
-    1     // bottom
-};
-// 0 for the "Dirichlet" type; 1 for the "Neumann" type
+struct TempBCs{
+    static constexpr int type[6] = { // 0 for the "Dirichlet" type; 1 for the "Neumann" type
+        1,    // east
+        1,    // west
+        0,    // north
+        0,    // south
+        1,    // top
+        1     // bottom
+    };
 
-constexpr scalar valueOfTempBCs[6] = {
-    0.0,      // east
-    0.0,      // west
-    293.0,    // north
-    373.0,    // south
-    0.0,      // top
-    0.0       // bottom
+    static constexpr scalar val[6] = {
+        0.0,      // east
+        0.0,      // west
+        293.0,    // north 
+        373.0,    // south
+        0.0,      // top
+        0.0       // bottom
+    };
 };
 
 constexpr int niter = 10000000;      // iteration times 迭代次数

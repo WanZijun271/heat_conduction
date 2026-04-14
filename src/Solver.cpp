@@ -110,68 +110,68 @@ void Solver::calcCoef() {
 
                 // set boundary conditios
                 if (i == nx - 1) { // east
-                    if (typeBC[east] == 0) { // "Dirichlet" type
+                    if (TempBCs::type[east] == 0) { // "Dirichlet" type
                         _coef[id+id_aP] += -aE;
-                        _coef[id+id_b] += -2 * aE * valueOfTempBCs[east];
+                        _coef[id+id_b] += -2 * aE * TempBCs::val[east];
                         _coef[id+id_aE] = 0.0;
-                    } else if (typeBC[east] == 1) { // "Neumann" type
+                    } else if (TempBCs::type[east] == 1) { // "Neumann" type
                         _coef[id+id_aP] += aE;
-                        _coef[id+id_b] += -valueOfTempBCs[east] * areaE;
+                        _coef[id+id_b] += -TempBCs::val[east] * areaE;
                         _coef[id+id_aE] = 0.0;
                     }
                 }
                 if (i == 0) { // west
-                    if (typeBC[west] == 0) { // "Dirichlet" type
+                    if (TempBCs::type[west] == 0) { // "Dirichlet" type
                         _coef[id+id_aP] += -aW;
-                        _coef[id+id_b] += -2 * aW * valueOfTempBCs[west];
+                        _coef[id+id_b] += -2 * aW * TempBCs::val[west];
                         _coef[id+id_aW] = 0.0;
-                    } else if (typeBC[west] == 1) { // "Neumann" type
+                    } else if (TempBCs::type[west] == 1) { // "Neumann" type
                         _coef[id+id_aP] += aW;
-                        _coef[id+id_b] += -valueOfTempBCs[west] * areaW;
+                        _coef[id+id_b] += -TempBCs::val[west] * areaW;
                         _coef[id+id_aW] = 0.0;
                     }
                 }
                 if (j == ny - 1) { // north
-                    if (typeBC[north] == 0) { // "Dirichlet" type
+                    if (TempBCs::type[north] == 0) { // "Dirichlet" type
                         _coef[id+id_aP] += -aN;
-                        _coef[id+id_b] += -2 * aN * valueOfTempBCs[north];
+                        _coef[id+id_b] += -2 * aN * TempBCs::val[north];
                         _coef[id+id_aN] = 0.0;
-                    } else if (typeBC[north] == 1) { // "Neumann" type
+                    } else if (TempBCs::type[north] == 1) { // "Neumann" type
                         _coef[id+id_aP] += aN;
-                        _coef[id+id_b] += -valueOfTempBCs[north] * areaN;
+                        _coef[id+id_b] += -TempBCs::val[north] * areaN;
                         _coef[id+id_aN] = 0.0;
                     }
                 }
                 if (j == 0) { // south
-                    if (typeBC[south] == 0) { // "Dirichlet" type
+                    if (TempBCs::type[south] == 0) { // "Dirichlet" type
                         _coef[id+id_aP] += -aS;
-                        _coef[id+id_b] += -2 * aS * valueOfTempBCs[south];
+                        _coef[id+id_b] += -2 * aS * TempBCs::val[south];
                         _coef[id+id_aS] = 0.0;
-                    } else if (typeBC[south] == 1) { // "Neumann" type
+                    } else if (TempBCs::type[south] == 1) { // "Neumann" type
                         _coef[id+id_aP] += aS;
-                        _coef[id+id_b] += -valueOfTempBCs[south] * areaS;
+                        _coef[id+id_b] += -TempBCs::val[south] * areaS;
                         _coef[id+id_aS] = 0.0;
                     }
                 }
                 if (dim == 3 && k == nz - 1) { // top
-                    if (typeBC[top] == 0) { // "Dirichlet" type
+                    if (TempBCs::type[top] == 0) { // "Dirichlet" type
                         _coef[id+id_aP] += -aT;
-                        _coef[id+id_b] += -2 * aT * valueOfTempBCs[top];
+                        _coef[id+id_b] += -2 * aT * TempBCs::val[top];
                         _coef[id+id_aT] = 0.0;
-                    } else if (typeBC[top] == 1) { // "Neumann" type
+                    } else if (TempBCs::type[top] == 1) { // "Neumann" type
                         _coef[id+id_aP] += aT;
-                        _coef[id+id_b] += -valueOfTempBCs[top] * areaT;
+                        _coef[id+id_b] += -TempBCs::val[top] * areaT;
                         _coef[id+id_aT] = 0.0;
                     }
                 }
                 if (dim == 3 && k == 0) { // bottom
-                    if (typeBC[bottom] == 0) { // "Dirichlet" type
+                    if (TempBCs::type[bottom] == 0) { // "Dirichlet" type
                         _coef[id+id_aP] += -aB;
-                        _coef[id+id_b] += -2 * aB * valueOfTempBCs[bottom];
+                        _coef[id+id_b] += -2 * aB * TempBCs::val[bottom];
                         _coef[id+id_aB] = 0.0;
-                    } else if (typeBC[bottom] == 1) { // "Neumann" type
+                    } else if (TempBCs::type[bottom] == 1) { // "Neumann" type
                         _coef[id+id_aP] += aB;
-                        _coef[id+id_b] += -valueOfTempBCs[bottom] * areaB;
+                        _coef[id+id_b] += -TempBCs::val[bottom] * areaB;
                         _coef[id+id_aB] = 0.0;
                     }
                 }
